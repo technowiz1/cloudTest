@@ -1,66 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import './App.css';
-import { API } from 'aws-amplify';
-import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
-import { listNotes } from './graphql/queries';
-import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from './graphql/mutations';
-
-const initialFormState = { name: '', description: '' }
-
-function App() {
-  const [notes, setNotes] = useState([]);
-  const [formData, setFormData] = useState(initialFormState);
-
-  useEffect(() => {
-    fetchNotes();
-  }, []);
-
-  async function fetchNotes() {
-    const apiData = await API.graphql({ query: listNotes });
-    setNotes(apiData.data.listNotes.items);
+import React, { Component } from "react";
+import "./App.css";
+import { withAuthenticator, AmplifySignOut } from "@aws-amplify/ui-react";
+import { API, graphqlOperation } from "aws-amplify";
+const listTodos = `query listTodos {
+  listTodos{
+    items{
+      id
+      name
+      description
+    }
   }
-
-  async function createNote() {
-    if (!formData.name || !formData.description) return;
-    await API.graphql({ query: createNoteMutation, variables: { input: formData } });
-    setNotes([ ...notes, formData ]);
-    setFormData(initialFormState);
+}`;
+const addTodo = `mutation createTodo($name:String! $description: String!) {
+  createTodo(input:{
+    name:$name
+    description:$description
+  }){
+    id
+    name
+    description
   }
-
-  async function deleteNote({ id }) {
-    const newNotesArray = notes.filter(note => note.id !== id);
-    setNotes(newNotesArray);
-    await API.graphql({ query: deleteNoteMutation, variables: { input: { id } }});
-  }
-
-  return (
-    <div className="App">
-      <h1>My Notes App</h1>
-      <input
-        onChange={e => setFormData({ ...formData, 'name': e.target.value})}
-        placeholder="Note name"
-        value={formData.name}
-      />
-      <input
-        onChange={e => setFormData({ ...formData, 'description': e.target.value})}
-        placeholder="Note description"
-        value={formData.description}
-      />
-      <button onClick={createNote}>Create Note</button>
-      <div style={{marginBottom: 30}}>
-        {
-          notes.map(note => (
-            <div key={note.id || note.name}>
-              <h2>{note.name}</h2>
-              <p>{note.description}</p>
-              <button onClick={() => deleteNote(note)}>Delete note</button>
-            </div>
-          ))
-        }
+}`;
+class App extends Component {
+  todoMutation = async () => {
+    const todoDetails = {
+      name: "AWS Amplify!",
+      description: "Build React app using AWS Amplify"
+    };
+    const newTodo = await API.graphql(graphqlOperation(addTodo, todoDetails));
+    alert(JSON.stringify(newTodo));
+  };
+  listQuery = async () => {
+    console.log("listing todos");
+    const allTodos = await API.graphql(graphqlOperation(listTodos));
+    alert(JSON.stringify(allTodos));
+  };
+  render() {
+    return (
+      <div className="App">
+        <AmplifySignOut />
+        <p> Click a button </p>
+        <button onClick={this.listQuery}>GraphQL List Query</button>
+        <button onClick={this.todoMutation}>GraphQL Todo Mutation</button>
       </div>
-      <AmplifySignOut />
-    </div>
-  );
+    );
+  }
 }
-
-export default withAuthenticator(App);
+export default withAuthenticator(App, true);

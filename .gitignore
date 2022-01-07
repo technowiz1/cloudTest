@@ -6,6 +6,8 @@
 .pnp.js
 .gituhb/*
 sonar-project.properties
+y.pub
+y
 
 # testing
 /coverage
